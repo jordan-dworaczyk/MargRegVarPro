@@ -1,11 +1,11 @@
 function plot_reconstruction_composites
-% Paper figures from the saved reconstruction results, including every start.
+% Paper figures from the saved reconstruction results, including every initial guess.
 
 experiment_folder=fileparts(mfilename('fullpath'));
 output_folder=fullfile(experiment_folder,'output','reconstruction_figures');
 if ~exist(output_folder,'dir'), mkdir(output_folder); end
 types={'gaussian','defocus','motion'};
-method_order=[1 3 2]; % MAP, Gaussian marginalization, proposed prior
+method_order=[1 3 2]; % No log-det, Gaussian marginalization, Proposed
 method_labels={'No log-det','Gaussian marginalization','Proposed'};
 all_rows=cell(0,13);
 
@@ -44,7 +44,7 @@ for type=1:3
                     'HorizontalAlignment','center','VerticalAlignment','middle', ...
                     'Interpreter','latex','FontSize',8.2,'Clipping','off');
             end
-            all_rows(end+1,:)={types{type},method,start,mat2str(a.y_estimate(:,method,start).',12), ...
+            all_rows(end+1,:)={types{type},method_labels{row},start,mat2str(a.y_estimate(:,method,start).',12), ...
                 a.parameter_error(method,start),a.relative_residual(method,start), ...
                 a.RRE(method,start),a.PSNR(method,start),a.SSIM(method,start), ...
                 a.PSF_error(method,start),a.iterations(method,start),a.stop(method,start),a.alpha(method)};
@@ -59,8 +59,8 @@ for type=1:3
     exportgraphics(fig,[name '.png'],'Resolution',450);
     close(fig);
 end
-metrics=cell2table(all_rows,'VariableNames',{'PSF','Method','Start','Estimate', ...
+metrics=cell2table(all_rows,'VariableNames',{'PSF','Method','Initial_guess','Estimate', ...
     'Parameter_error','Relative_residual','RRE','PSNR','SSIM','PSF_error','Iterations','Stop','Alpha'});
-writetable(metrics,fullfile(output_folder,'all_start_metrics.csv'));
+writetable(metrics,fullfile(output_folder,'all_initial_guess_metrics.csv'));
 disp(metrics);
 end

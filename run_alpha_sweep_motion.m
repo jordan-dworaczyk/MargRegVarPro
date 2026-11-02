@@ -1,5 +1,5 @@
 function run_alpha_sweep_motion
-% Motion reference-image weight selection over the three paper starts.
+% Motion reference-image weight selection over the three initial guesses.
 % Requires Image Processing Toolbox. All parameters are fixed in this study.
 previous_rng=rng;
 rng_cleanup=onCleanup(@() rng(previous_rng)); %#ok<NASGU>
@@ -8,7 +8,7 @@ experiment_folder = fileparts(mfilename('fullpath'));
 output_folder = fullfile(experiment_folder,'output','alpha_sweep_motion');
 if ~exist(output_folder,'dir'), mkdir(output_folder); end
 
-%% Image, blur parameters, and starting points
+%% Image, blur parameters, and initial guesses
 x_true = im2double(imread(fullfile(experiment_folder,'cameraman_reconstruction.png')));
 n = size(x_true,1);
 N = n^2;
@@ -44,7 +44,7 @@ s = sqrt(d2(:).^2+d2.^2);
 
 %% Candidate weights for the proposed auxiliary prior
 % Choose one alpha for the entire blur family using the mean image RRE.
-% All three starts contribute, including runs that reach the iteration limit.
+% All three initial guesses contribute, including runs that reach the iteration limit.
 % Ground truth is used for this assessment, but is never passed to the solver.
 alpha_grid = unique([.05 .1 .2 .35 .5 eta/N .75 1 1.5 2]);
 gamma = 1/eta;
@@ -58,7 +58,7 @@ stop = RRE;
 history = cell(number_of_weights,3);
 y_estimate = zeros(numel(y_true),number_of_weights,3);
 
-%% Solve from each start for every candidate alpha
+%% Solve from each initial guess for every candidate alpha
 for start = 1:3
     for j = 1:number_of_weights
         beta = sqrt(alpha_grid(j)/eta);
@@ -72,7 +72,7 @@ for start = 1:3
         RRE(j,start) = norm(x-x_true,'fro')/norm(x_true,'fro');
         PSF_error(j,start) = norm(psf-psf_true,'fro')/norm(psf_true,'fro');
         parameter_error(j,start) = norm(y-y_true);
-        fprintf('Start %d, alpha %.8g: RRE %.6g, PSF error %.6g, stop %d\n', ...
+        fprintf('Initial guess %d, alpha %.8g: RRE %.6g, PSF error %.6g, stop %d\n', ...
             start,alpha_grid(j),RRE(j,start),PSF_error(j,start),stop(j,start));
     end
 end
@@ -81,12 +81,12 @@ end
 mean_RRE = mean(RRE,2);
 [~,index] = min(mean_RRE);
 selected_alpha = alpha_grid(index);
-fprintf('Selected alpha %.12g (mean image RRE across all three starts).\n',selected_alpha);
+fprintf('Selected alpha %.12g (mean image RRE across all three initial guesses).\n',selected_alpha);
 save(fullfile(output_folder,'results.mat'),'alpha_grid','selected_alpha', ...
     'RRE','PSF_error','parameter_error','y_estimate','iterations','stop','history', ...
     'x_true','b','bhat','psf_true','y_true','y_start','eta','delta','lambda','gamma','s');
 T = table(alpha_grid(:),RRE(:,1),RRE(:,2),RRE(:,3),mean_RRE, ...
-    'VariableNames',{'Alpha','RRE_start_1','RRE_start_2','RRE_start_3','Mean_RRE'});
+    'VariableNames',{'Alpha','RRE_initial_guess_1','RRE_initial_guess_2','RRE_initial_guess_3','Mean_RRE'});
 disp(T);
 writetable(T,fullfile(output_folder,'selection.csv'));
 
@@ -96,8 +96,8 @@ semilogx(alpha_grid,RRE,'-o');
 hold on;
 xline(selected_alpha,'--k','Selected alpha','HandleVisibility','off');
 xlabel('$\alpha$','Interpreter','latex');
-ylabel('Relative image error');
-legend('Start 1','Start 2','Start 3','Location','best');
+ylabel('Image RRE');
+legend('Initial guess 1','Initial guess 2','Initial guess 3','Location','best');
 grid on;
 exportgraphics(fig,fullfile(output_folder,'alpha_selection.png'),'Resolution',200);
 end

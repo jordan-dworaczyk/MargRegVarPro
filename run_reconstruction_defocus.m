@@ -1,5 +1,5 @@
 function run_reconstruction_defocus
-% Defocus reconstruction study: three starts and three determinant choices.
+% Defocus reconstruction study: three initial guesses and three determinant choices.
 % Requires Image Processing Toolbox. All parameters are fixed in this study.
 previous_rng=rng;
 rng_cleanup=onCleanup(@() rng(previous_rng)); %#ok<NASGU>
@@ -8,7 +8,7 @@ experiment_folder = fileparts(mfilename('fullpath'));
 output_folder = fullfile(experiment_folder,'output','reconstruction_defocus');
 if ~exist(output_folder,'dir'), mkdir(output_folder); end
 
-%% Image, blur parameters, and starting points
+%% Image, blur parameters, and initial guesses
 x_true = im2double(imread(fullfile(experiment_folder,'cameraman_reconstruction.png')));
 n = size(x_true,1);
 N = n^2;
@@ -40,15 +40,15 @@ d2 = 2*cos(omega)-2;
 s = sqrt(d2(:).^2+d2.^2);
 
 %% The three objective choices, with a uniform base prior
-% Order in saved arrays: MAP/VarPro, proposed auxiliary prior, Gaussian marginalization.
+% Order in saved arrays: No log-det, Proposed, Gaussian marginalization.
 % Exact marginalization requires alpha=1 and the matched auxiliary precision.
-% Proposed alpha minimizes mean true-image RRE over the three starts on the oracle grid.
+% Proposed alpha minimizes mean true-image RRE over the three initial guesses on the oracle grid.
 alpha = [0, 0.75, 1];
 beta = sqrt(alpha/eta);
-% Marginalization retains alpha=1; the proposed weight is shared across starts.
+% Marginalization retains alpha=1; the proposed weight is shared across initial guesses.
 gamma = [1/eta, 1/eta, delta/eta];
 s_aux = cat(3,ones(n),ones(n),s);
-method_names = {'MAP/VarPro','Proposed auxiliary prior','Gaussian marginalization'};
+method_names = {'No log-det','Proposed','Gaussian marginalization'};
 
 % f = (1/(2N))*sum(ell*|bhat|^2/(|c|^2+ell))
 %     + (beta^2/2)*sum(log(|c|^2+gamma*|s_aux|^2)).
@@ -61,7 +61,7 @@ iterations = zeros(3); stop = zeros(3);
 parameter_error = zeros(3); RRE = zeros(3); PSF_error = zeros(3);
 relative_residual = zeros(3); PSNR = zeros(3); SSIM = zeros(3);
 
-%% Solve from each start, then reconstruct x from the estimated blur
+%% Solve from each initial guess, then reconstruct x from the estimated blur
 for start = 1:3
     for method = 1:3
         [y,history{method,start},iterations(method,start),stop(method,start)] = ...
@@ -81,7 +81,7 @@ for start = 1:3
         relative_residual(method,start) = norm(fitted_data-b,'fro')/norm(b,'fro');
         PSNR(method,start) = 10*log10(1/mean((x(:)-x_true(:)).^2));
         SSIM(method,start) = ssim(x,x_true);
-        fprintf('%s, start %d: y=%s, RRE=%.6g, PSF error=%.6g, stop=%d\n', ...
+        fprintf('%s, initial guess %d: y*=%s, RRE=%.6g, PSF error=%.6g, stop=%d\n', ...
             method_names{method},start,mat2str(y.',6),RRE(method,start), ...
             PSF_error(method,start),stop(method,start));
     end
@@ -91,14 +91,14 @@ save(fullfile(output_folder,'results.mat'),'y_true','y_start','y_estimate', ...
     'history','iterations','stop','parameter_error','RRE','PSF_error', ...
     'relative_residual','PSNR','SSIM','eta','delta','lambda','beta','alpha','gamma','s');
 
-%% Display every reconstructed image; columns are starting points
+%% Display every reconstructed image; columns are initial guesses
 [fig,figure_cleanup]=output_figure('Visible','off','Color','w','Position',[100 100 1000 850]);
 tiledlayout(3,3,'TileSpacing','compact','Padding','compact');
 for method = 1:3
     for start = 1:3
         nexttile; imagesc(x_estimate(:,:,method,start),[0 1]);
         axis image off; colormap gray;
-        title(sprintf('%s, start %d\nRRE %.3f, PSF error %.3f', ...
+        title(sprintf('%s, initial guess %d\nRRE %.3f, PSF error %.3f', ...
             method_names{method},start,RRE(method,start),PSF_error(method,start)));
     end
 end
@@ -112,7 +112,7 @@ for method = 1:3
     for start = 1:3
         nexttile; imagesc(psf_estimate(crop,crop,method,start));
         axis image off; colormap gray;
-        title(sprintf('%s, start %d',method_names{method},start));
+        title(sprintf('%s, initial guess %d',method_names{method},start));
     end
 end
 exportgraphics(fig,fullfile(output_folder,'all_psfs.png'),'Resolution',200);
