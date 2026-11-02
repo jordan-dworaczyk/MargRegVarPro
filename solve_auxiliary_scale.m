@@ -21,7 +21,6 @@ for iterations = 1:500
         break
     end
     matrix = N*B;
-    matrix = (matrix+matrix.')/2;
     damping = 1e-6;
     [R,flag] = chol(matrix);
     while flag ~= 0

@@ -39,5 +39,4 @@ end
 f = varpro + beta^2/2 * sum(log(q));
 g = g_varpro + beta^2/2 * g_logdet;
 B = B_varpro + beta^2/2 * H_logdet;
-B = (B+B.')/2;
 end
