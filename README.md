@@ -82,3 +82,9 @@ Runtime and floating-point stopping behavior may vary across MATLAB environments
 When using MargRegVarPro in your research, please cite:
 
 > J. T. Dworaczyk and M. I. Español. *Marginalization-Based Regularization for Separable Nonlinear Least Squares Problems with Applications to Semi-Blind Deblurring*. Manuscript, 2026.
+
+---
+
+## License
+
+The source code and documentation are licensed under the [MIT License](LICENSE), copyright (c) 2026 Jordan T. Dworaczyk. The input images are excluded from this license.
